@@ -1,0 +1,6 @@
+{
+  "name": "Targeted Lead Generation Engine",
+  "description": "High-volume targeted lead generation, directory synthesis, and AI outreach optimization for businesses, job seekers, students, and custom demographics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
