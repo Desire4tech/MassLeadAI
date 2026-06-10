@@ -212,7 +212,6 @@ async function evaluateEmailWithAI(
   isRole: boolean
 ): Promise<{ status: "Deliverable" | "Catch-All" | "Risky" | "Undeliverable"; catchAll: boolean; details: string; mailmeteor: any } | null> {
   try {
-    const ai = getGemini();
     const [username, domain] = email.split("@");
 
     const prompt = `Perform a high-fidelity, strict email deliverability audit.
@@ -247,35 +246,38 @@ Respond strictly with a JSON object conforming to the following TypeScript inter
 }
 `;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            status: { type: Type.STRING, description: "Must be: Deliverable, Catch-All, Risky, or Undeliverable" },
-            catchAll: { type: Type.BOOLEAN, description: "True if domain accepts all mail, false otherwise" },
-            details: { type: Type.STRING, description: "A highly concise professional verdict explaining the rating" },
-            mailmeteor: {
-              type: Type.OBJECT,
-              properties: {
-                format: { type: Type.BOOLEAN },
-                disposable: { type: Type.BOOLEAN },
-                mx: { type: Type.BOOLEAN },
-                role: { type: Type.BOOLEAN },
-                catchAll: { type: Type.BOOLEAN }
-              },
-              required: ["format", "disposable", "mx", "role", "catchAll"]
-            }
-          },
-          required: ["status", "catchAll", "details", "mailmeteor"]
+    const parsed = await callGeminiWithFailover(async (ai, modelName, keyIndex, totalKeys) => {
+      console.log(`[Gemini Request] Evaluating email with Key #${keyIndex + 1}/${totalKeys} using model "${modelName}"...`);
+      const response = await ai.models.generateContent({
+        model: modelName,
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              status: { type: Type.STRING, description: "Must be: Deliverable, Catch-All, Risky, or Undeliverable" },
+              catchAll: { type: Type.BOOLEAN, description: "True if domain accepts all mail, false otherwise" },
+              details: { type: Type.STRING, description: "A highly concise professional verdict explaining the rating" },
+              mailmeteor: {
+                type: Type.OBJECT,
+                properties: {
+                  format: { type: Type.BOOLEAN },
+                  disposable: { type: Type.BOOLEAN },
+                  mx: { type: Type.BOOLEAN },
+                  role: { type: Type.BOOLEAN },
+                  catchAll: { type: Type.BOOLEAN }
+                },
+                required: ["format", "disposable", "mx", "role", "catchAll"]
+              }
+            },
+            required: ["status", "catchAll", "details", "mailmeteor"]
+          }
         }
-      }
+      });
+      return JSON.parse(response.text?.trim() || "{}");
     });
 
-    const parsed = JSON.parse(response.text?.trim() || "{}");
     if (parsed.status && parsed.mailmeteor) {
       return {
         status: parsed.status,
@@ -577,15 +579,66 @@ app.post("/api/verify-email", async (req, res) => {
   }
 });
 
-// Initialize GoogleGenAI lazily to avoid crashing on launch if key is absent
-let aiClient: GoogleGenAI | null = null;
-function getGemini(): GoogleGenAI {
-  if (!aiClient) {
-    const key = process.env.GEMINI_API_KEY;
-    if (!key) {
-      throw new Error("GEMINI_API_KEY environment variable is not configured. Falling back to targeted server simulator.");
+// Initialize GoogleGenAI with multi-key failover capabilities
+function getAvailableKeys(): string[] {
+  const keys: string[] = [];
+  
+  // 1. Core standardized system key
+  if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== "MY_GEMINI_API_KEY" && process.env.GEMINI_API_KEY.trim() !== "") {
+    keys.push(process.env.GEMINI_API_KEY.trim());
+  }
+  
+  // 2. Extra numbered API keys GEMINI_API_KEY_1 to GEMINI_API_KEY_10
+  for (let i = 1; i <= 10; i++) {
+    const keyName = `GEMINI_API_KEY_${i}`;
+    const value = process.env[keyName];
+    if (value && value !== "MY_GEMINI_API_KEY" && value.trim() !== "") {
+      const trimmed = value.trim();
+      if (!keys.includes(trimmed)) {
+        keys.push(trimmed);
+      }
     }
-    aiClient = new GoogleGenAI({
+  }
+
+  // 3. Scan all process.env for any keys starting with GEMINI_API_KEY to catch other variants (e.g. GEMINI_API_KEY_BACKUP, GEMINI_API_KEY_PRO, etc.)
+  for (const envKey of Object.keys(process.env)) {
+    if (envKey.startsWith("GEMINI_API_KEY") && envKey !== "GEMINI_API_KEY") {
+      const val = process.env[envKey];
+      if (val && val !== "MY_GEMINI_API_KEY" && val.trim() !== "") {
+        const trimmed = val.trim();
+        if (!keys.includes(trimmed)) {
+          keys.push(trimmed);
+        }
+      }
+    }
+  }
+  
+  return keys;
+}
+
+// Global failover runner with retry mechanics and multi-model fallbacks for robust production operations
+async function callGeminiWithFailover<T>(
+  action: (ai: GoogleGenAI, modelName: string, keyIndex: number, totalKeys: number) => Promise<T>
+): Promise<T> {
+  const keys = getAvailableKeys();
+  if (keys.length === 0) {
+    const fallbackKey = process.env.GEMINI_API_KEY;
+    if (!fallbackKey || fallbackKey === "MY_GEMINI_API_KEY" || fallbackKey.trim() === "") {
+      throw new Error("No configured GEMINI_API_KEY found in server environment.");
+    }
+    keys.push(fallbackKey.trim());
+  }
+
+  // Model hierarchy to try in sequence for resiliency when a model experiences high demand (503) or 429
+  const modelsToTry = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
+  let lastError: any = null;
+
+  for (let k = 0; k < keys.length; k++) {
+    const key = keys[k];
+    let skipKey = false;
+    
+    // Create the client for this key
+    const ai = new GoogleGenAI({
       apiKey: key,
       httpOptions: {
         headers: {
@@ -593,24 +646,100 @@ function getGemini(): GoogleGenAI {
         }
       }
     });
+
+    for (const modelName of modelsToTry) {
+      if (skipKey) {
+        break;
+      }
+
+      // Try each model with a quick single retry for transient timeouts/load errors.
+      // If we hit a 429 quota exhaustion, we will fast-break this key entirely.
+      const maxRetries = 1;
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          if (attempt > 0) {
+            const delay = attempt * 200; // Small 200ms delay before retrying
+            console.log(`[Failover] Quick retry on Key #${k + 1}/${keys.length} with model "${modelName}" (Attempt ${attempt + 1}/${maxRetries + 1}) after ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+          return await action(ai, modelName, k, keys.length);
+        } catch (err: any) {
+          lastError = err;
+          // Extract error code/status if available
+          const code = err?.status || err?.status_code || err?.code || (err?.error?.code) || "";
+          let msg = "";
+          try {
+            msg = err?.message || (err && typeof err === "object" ? String(err) : String(err));
+          } catch (e) {
+            msg = "Unextractable error message";
+          }
+          
+          console.warn(
+            `[Failover] Call failed on Key #${k + 1}/${keys.length} [Model: ${modelName}, Attempt: ${attempt + 1}/${maxRetries + 1}]. Error Code: ${code}.`
+          );
+
+          // Check if it is a 429 Quota Exceeded / Rate Limit
+          const is429 = 
+            code === 429 || 
+            msg.includes("429") || 
+            msg.toLowerCase().includes("quota") || 
+            msg.toLowerCase().includes("rate limit") || 
+            msg.toLowerCase().includes("exhausted");
+
+          if (is429) {
+            console.warn(`[Failover] Key #${k + 1}/${keys.length} is rate-limited or quota exhausted. Instantly switching to next available API key to save latency...`);
+            skipKey = true;
+            break; // Break the retry loop for this model; outer loop checks skipKey and breaks the model loop
+          }
+
+          // Check if it is a structural validation, bad request, or non-transient error
+          const isTransient = 
+            code === 503 || 
+            msg.includes("503") || 
+            msg.toLowerCase().includes("overloaded") || 
+            msg.toLowerCase().includes("demand") || 
+            msg.toLowerCase().includes("temporary") || 
+            msg.toLowerCase().includes("unavailable");
+
+          if (!isTransient) {
+            console.log(`[Failover] Non-transient error detected (e.g. bad request or invalid schema). Skipping further retries for this configuration.`);
+            break; // Break the retry loop to try the next model
+          }
+        }
+      }
+    }
   }
-  return aiClient;
+  
+  throw lastError || new Error("All configured Gemini API keys and fallback models failed or hit limits.");
+}
+
+// Keep legacy getGemini to avoid any un-imported breakage or other usages
+function getGemini(): GoogleGenAI {
+  const keys = getAvailableKeys();
+  const key = keys[0] || process.env.GEMINI_API_KEY || "MY_GEMINI_API_KEY";
+  return new GoogleGenAI({
+    apiKey: key,
+    httpOptions: {
+      headers: {
+        'User-Agent': 'aistudio-build',
+      }
+    }
+  });
 }
 
 // Low-level helper: realistic names/locations for fallbacks if Gemini is not available or quota is exhausted.
 function generateFallbackLeads(options: any): any[] {
-  const {
-    batchSize = 20,
-    country = "Nigeria",
-    city = "",
-    audiences = [],
-    gender = "Any",
-    ageRange = "Any",
-    incomeLevel = "Any",
-    educationLevel = "Any",
-    interests = [],
-    exclusions = []
-  } = options;
+  const opts = options || {};
+  const batchSize = typeof opts.batchSize === "number" ? opts.batchSize : 20;
+  const country = typeof opts.country === "string" ? opts.country : "Nigeria";
+  const city = typeof opts.city === "string" ? opts.city : "";
+  const audiences = Array.isArray(opts.audiences) ? opts.audiences : [];
+  const gender = typeof opts.gender === "string" ? opts.gender : "Any";
+  const ageRange = typeof opts.ageRange === "string" ? opts.ageRange : "Any";
+  const incomeLevel = typeof opts.incomeLevel === "string" ? opts.incomeLevel : "Any";
+  const educationLevel = typeof opts.educationLevel === "string" ? opts.educationLevel : "Any";
+  const interests = Array.isArray(opts.interests) ? opts.interests : [];
+  const exclusions = Array.isArray(opts.exclusions) ? opts.exclusions : [];
 
   const results: any[] = [];
   const primaryAudience = audiences[0] || "Business Owners";
@@ -690,26 +819,32 @@ function generateFallbackLeads(options: any): any[] {
   };
 
   const currentOccupations = occupationsMap[primaryAudience] || ["Independent Consultant", "Specialist", "Freelance Practitioner", "Manager"];
-  const finalCities = city ? [city] : pool.cities;
+  const finalCities = city ? [city] : (Array.isArray(pool.cities) && pool.cities.length > 0 ? pool.cities : ["Metropolis"]);
   const listGenders = gender === "Any" ? ["Male", "Female"] : [gender];
+
+  const poolMales = Array.isArray(pool.males) && pool.males.length > 0 ? pool.males : ["John"];
+  const poolFemales = Array.isArray(pool.females) && pool.females.length > 0 ? pool.females : ["Jane"];
+  const poolLastNames = Array.isArray(pool.lastNames) && pool.lastNames.length > 0 ? pool.lastNames : ["Doe"];
 
   for (let idx = 0; idx < batchSize; idx++) {
     const isMale = listGenders[Math.floor(Math.random() * listGenders.length)] === "Male";
     const firstName = isMale 
-      ? pool.males[Math.floor(Math.random() * pool.males.length)]
-      : pool.females[Math.floor(Math.random() * pool.females.length)];
-    const lastName = pool.lastNames[Math.floor(Math.random() * pool.lastNames.length)];
-    const fullName = `${firstName} ${lastName}`;
+      ? poolMales[Math.floor(Math.random() * poolMales.length)]
+      : poolFemales[Math.floor(Math.random() * poolFemales.length)];
+    const lastName = poolLastNames[Math.floor(Math.random() * poolLastNames.length)];
+    const fullName = `${firstName || "John"} ${lastName || "Doe"}`;
 
     if (exclusions.includes(fullName)) continue;
 
     // Generate clean email
     const separator = Math.random() > 0.5 ? "." : "_";
     const emailSuffix = Math.random() > 0.7 ? "yahoo.com" : Math.random() > 0.5 ? "hotmail.com" : "gmail.com";
-    const email = `${firstName.toLowerCase()}${separator}${lastName.toLowerCase()}${Math.floor(Math.random() * 90 + 10)}@${emailSuffix}`;
+    const fName = (firstName || "John").replace(/\s+/g, "").toLowerCase();
+    const lName = (lastName || "Doe").replace(/\s+/g, "").toLowerCase();
+    const email = `${fName}${separator}${lName}${Math.floor(Math.random() * 90 + 10)}@${emailSuffix}`;
 
     // Phone
-    const phoneNum = pool.phones + Math.floor(Math.random() * 900000 + 100000);
+    const phoneNum = (pool.phones || "+1 ") + Math.floor(Math.random() * 900000 + 100000);
 
     // Age
     let age = 28;
@@ -758,25 +893,22 @@ function generateFallbackLeads(options: any): any[] {
 
 // Full-fledged proxy API route for leads generation
 app.post("/api/generate-leads", async (req, res) => {
-  const {
-    batchNum = 1,
-    batchSize = 20,
-    locationLabel = "Nigeria",
-    audiences = [],
-    gender = "Any",
-    ageRange = "Any",
-    incomeLevel = "Any",
-    educationLevel = "Any",
-    interests = [],
-    campaignGoal = "Sourcing targeted leads",
-    country = "Nigeria",
-    city = "",
-    exclusions = []
-  } = req.body;
+  const body = req.body || {};
+  const batchNum = typeof body.batchNum === "number" ? body.batchNum : 1;
+  const batchSize = typeof body.batchSize === "number" ? body.batchSize : 20;
+  const locationLabel = typeof body.locationLabel === "string" ? body.locationLabel : "Nigeria";
+  const audiences = Array.isArray(body.audiences) ? body.audiences : [];
+  const gender = typeof body.gender === "string" ? body.gender : "Any";
+  const ageRange = typeof body.ageRange === "string" ? body.ageRange : "Any";
+  const incomeLevel = typeof body.incomeLevel === "string" ? body.incomeLevel : "Any";
+  const educationLevel = typeof body.educationLevel === "string" ? body.educationLevel : "Any";
+  const interests = Array.isArray(body.interests) ? body.interests : [];
+  const campaignGoal = typeof body.campaignGoal === "string" ? body.campaignGoal : "Sourcing targeted leads";
+  const country = typeof body.country === "string" ? body.country : "Nigeria";
+  const city = typeof body.city === "string" ? body.city : "";
+  const exclusions = Array.isArray(body.exclusions) ? body.exclusions : [];
 
   try {
-    const ai = getGemini();
-
     const exclusionsStr = exclusions.length > 0 ? exclusions.slice(-20).join(", ") : "none";
     const prompt = `You are a professional lead generation and directory synthesis assistant. Your task is to generate exactly ${batchSize} high-quality, realistic, and culturally authentic target lead profiles for ${country}${city ? ` near ${city}` : ""}.
     
@@ -802,44 +934,47 @@ app.post("/api/generate-leads", async (req, res) => {
     7. Exclude these names to avoid duplicates: ${exclusionsStr}.
     8. Set custom notes detailing why they match the goal: "${campaignGoal}".`;
 
-    const aiResponse = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              name: { type: Type.STRING, description: "Official local name or full name of the target lead." },
-              email: { type: Type.STRING, description: "A realistic personal or professional contact email address." },
-              phone: { type: Type.STRING, description: "Valid structural mobile or landline phone number formatted for target country." },
-              gender: { type: Type.STRING, description: "Male or Female" },
-              age: { type: Type.INTEGER, description: "Target age (integer between 18 and 80)." },
-              location: { type: Type.STRING, description: "Real metropolitan borough, neighborhood, or city name within the country." },
-              country: { type: Type.STRING, description: "Must match target country." },
-              audienceType: { type: Type.STRING, description: "Matches targeted audience type label." },
-              occupation: { type: Type.STRING, description: "Clear localized occupation title." },
-              education: { type: Type.STRING, description: "Localized or general level of education standard match." },
-              income: { type: Type.STRING, description: "Matching targeted income level description." },
-              interests: {
-                type: Type.ARRAY,
-                items: { type: Type.STRING },
-                description: "List of 1 to 3 interests closely resembling target list or background."
+    const parsedText = await callGeminiWithFailover(async (ai, modelName, keyIndex, totalKeys) => {
+      console.log(`[Gemini Request] Generating leads with Key #${keyIndex + 1}/${totalKeys} using model "${modelName}"...`);
+      const aiResponse = await ai.models.generateContent({
+        model: modelName,
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                name: { type: Type.STRING, description: "Official local name or full name of the target lead." },
+                email: { type: Type.STRING, description: "A realistic personal or professional contact email address." },
+                phone: { type: Type.STRING, description: "Valid structural mobile or landline phone number formatted for target country." },
+                gender: { type: Type.STRING, description: "Male or Female" },
+                age: { type: Type.INTEGER, description: "Target age (integer between 18 and 80)." },
+                location: { type: Type.STRING, description: "Real metropolitan borough, neighborhood, or city name within the country." },
+                country: { type: Type.STRING, description: "Must match target country." },
+                audienceType: { type: Type.STRING, description: "Matches targeted audience type label." },
+                occupation: { type: Type.STRING, description: "Clear localized occupation title." },
+                education: { type: Type.STRING, description: "Localized or general level of education standard match." },
+                income: { type: Type.STRING, description: "Matching targeted income level description." },
+                interests: {
+                  type: Type.ARRAY,
+                  items: { type: Type.STRING },
+                  description: "List of 1 to 3 interests closely resembling target list or background."
+                },
+                platform: { type: Type.STRING, description: "Selected from: WhatsApp, Instagram, Facebook, LinkedIn, Email, SMS, TikTok." },
+                status: { type: Type.STRING, description: "Selected from: Cold, Warm, Hot" },
+                score: { type: Type.INTEGER, description: "Outbound compatibility quality score (integer from 55 to 100)." },
+                notes: { type: Type.STRING, description: "A detailed contextual explanation explaining exactly why they align well with the goal." }
               },
-              platform: { type: Type.STRING, description: "Selected from: WhatsApp, Instagram, Facebook, LinkedIn, Email, SMS, TikTok." },
-              status: { type: Type.STRING, description: "Selected from: Cold, Warm, Hot" },
-              score: { type: Type.INTEGER, description: "Outbound compatibility quality score (integer from 55 to 100)." },
-              notes: { type: Type.STRING, description: "A detailed contextual explanation explaining exactly why they align well with the goal." }
-            },
-            required: ["name", "email", "phone", "gender", "age", "location", "country", "audienceType", "platform", "status", "score", "notes"]
+              required: ["name", "email", "phone", "gender", "age", "location", "country", "audienceType", "platform", "status", "score", "notes"]
+            }
           }
         }
-      }
+      });
+      return aiResponse.text?.trim() || "";
     });
 
-    const parsedText = aiResponse.text?.trim() || "";
     const parsedLeads = JSON.parse(parsedText);
 
     if (Array.isArray(parsedLeads)) {

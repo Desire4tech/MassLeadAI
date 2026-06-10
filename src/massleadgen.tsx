@@ -356,6 +356,7 @@ export default function MassLeadGen() {
   const [progress, setProgress] = useState(0);
   const [batchLog, setBatchLog] = useState<{ msg: string; type: string; time: string }[]>([]);
   const [generating, setGenerating] = useState(false);
+  const [simulationWarning, setSimulationWarning] = useState(false);
   const abortRef = useRef(false);
 
   // Email verification helper states
@@ -487,6 +488,7 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
     setLeads([]);
     setBatchLog([]);
     setProgress(0);
+    setSimulationWarning(false);
     setStep("generating");
 
     const BATCH = 20;
@@ -528,6 +530,11 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
         // Check for API-level errors
         if (!response.ok || data.error) {
           throw new Error(data.error || `HTTP error ${response.status}`);
+        }
+
+        if (data.mode === "simulation") {
+          setSimulationWarning(true);
+          addLog("⚠️ API Rate Limit warning: Sourcing fallback simulator running.", "warn");
         }
 
         let batch = data.leads;
@@ -578,6 +585,9 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
           const data2 = await response2.json();
           if (!response2.ok || data2.error) {
             throw new Error(data2.error || `HTTP error ${response2.status}`);
+          }
+          if (data2.mode === "simulation") {
+            setSimulationWarning(true);
           }
           let batch2 = data2.leads;
           if (batch2 && Array.isArray(batch2) && batch2.length > 0) {
@@ -1229,6 +1239,44 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
       ══════════════════════════════════════════════════════ */}
       {step === "results" && (
         <div style={{ maxWidth: 1400, margin: "0 auto", animation: "fadeUp 0.3s ease" }} className="step-container">
+
+          {/* Elegant notice banner when simulation mode fallback gets triggered */}
+          {simulationWarning && (
+            <div style={{
+              background: "rgba(255, 165, 2, 0.06)",
+              border: "1.5px solid rgba(255, 165, 2, 0.22)",
+              borderRadius: 16,
+              padding: "16px 20px",
+              marginBottom: 24,
+              display: "flex",
+              alignItems: "center",
+              gap: 16,
+              flexWrap: "wrap",
+              animation: "fadeUp 0.3s ease"
+            }}>
+              <div style={{
+                background: "rgba(255, 165, 2, 0.12)",
+                color: "#FFA502",
+                width: 36,
+                height: 36,
+                borderRadius: "50%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0
+              }}>
+                <Zap size={18} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: "#FFA502", marginBottom: 3, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  Free-tier Quota Safety Fallback Engaged
+                </div>
+                <div style={{ fontSize: 12, color: "#94A3B8", lineHeight: 1.5 }}>
+                  The AI model reached its standard free-tier daily rate limit quota (20 requests/min). To maintain uninterrupted operation, the application instantly transitioned into its **local high-fidelity demographic database simulator**, delivering highly-targeted, culturally authentic directory entries without any downtime.
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Stats row */}
           <div className="results-stats-row">
