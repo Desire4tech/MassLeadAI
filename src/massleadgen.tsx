@@ -1,5 +1,67 @@
 import { useState, useRef, useCallback, useMemo, CSSProperties } from "react";
 import { Lead } from "./types";
+import {
+  Target,
+  MapPin,
+  BarChart2,
+  Users,
+  Compass,
+  Building2,
+  UserCheck,
+  GraduationCap,
+  Briefcase,
+  FileText,
+  Laptop,
+  TrendingUp,
+  DollarSign,
+  Link2,
+  Palette,
+  Layout,
+  Cpu,
+  PenTool,
+  Landmark,
+  Video,
+  Headphones,
+  Code2,
+  Calendar,
+  Shield,
+  Heart,
+  BarChart4,
+  Building,
+  Activity,
+  BookOpen,
+  Wrench,
+  Sprout,
+  Globe,
+  ShieldCheck,
+  RefreshCw,
+  CheckCircle2,
+  MailOpen,
+  AlertTriangle,
+  XCircle,
+  Clock,
+  Files,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Flame,
+  Trash,
+  X,
+  Play,
+  RotateCcw,
+  Zap,
+  Check,
+  Download,
+  Plus,
+  MessageSquare,
+  Instagram,
+  Facebook,
+  Linkedin,
+  Mail,
+  Smartphone,
+  Music
+} from "lucide-react";
 
 // ── DATA ────────────────────────────────────────────────────────────────────
 const COUNTRIES = [
@@ -21,37 +83,70 @@ const COUNTRIES = [
   "Venezuela","Vietnam","Yemen","Zambia","Zimbabwe"
 ];
 
+const AUDIENCE_ICONS: Record<string, any> = {
+  business_owner: Building2,
+  job_seeker: UserCheck,
+  student: GraduationCap,
+  employee: Briefcase,
+  unemployed: FileText,
+  freelancer: Laptop,
+  digital_marketer: TrendingUp,
+  sales_pro: DollarSign,
+  affiliate_marketer: Link2,
+  graphic_designer: Palette,
+  ui_ux_designer: Layout,
+  automation_engineer: Cpu,
+  writer: PenTool,
+  finance_accounting: Landmark,
+  content_creator: Video,
+  virtual_assistant: Headphones,
+  developer: Code2,
+  project_manager: Calendar,
+  cybersecurity: Shield,
+  corp_member: UserCheck,
+  retiree: Compass,
+  parent: Heart,
+  executive: BarChart4,
+  government: Building,
+  healthcare: Activity,
+  teacher: BookOpen,
+  artisan: Wrench,
+  farmer: Sprout,
+  religious: Compass,
+  ngo: Globe,
+};
+
 const AUDIENCE_TYPES = [
-  { id: "business_owner", label: "Business Owners", icon: "🏢", desc: "SME owners, entrepreneurs, startup founders" },
-  { id: "job_seeker", label: "Job Seekers", icon: "💼", desc: "Actively searching for employment" },
-  { id: "student", label: "Students", icon: "🎓", desc: "University, college, or vocational students" },
-  { id: "employee", label: "Employees", icon: "👔", desc: "Currently employed professionals" },
-  { id: "unemployed", label: "Unemployed", icon: "🔍", desc: "Not currently working or in school" },
-  { id: "freelancer", label: "Freelancers", icon: "💻", desc: "Independent contractors and gig workers" },
-  { id: "digital_marketer", label: "Digital Marketers", icon: "📈", desc: "SEO experts, media buyers, PPC specialists, social managers" },
-  { id: "sales_pro", label: "Sales Professionals", icon: "💰", desc: "Account executives, outbound sales reps, SDRs, business developers" },
-  { id: "affiliate_marketer", label: "Affiliate Marketers", icon: "🔗", desc: "Niche bloggers, funnel builders, performance marketers" },
-  { id: "graphic_designer", label: "Graphic Designers", icon: "🎨", desc: "Brand designers, illustrative artists, visual creators" },
-  { id: "ui_ux_designer", label: "UI/UX Designers", icon: "📐", desc: "User experience researchers, wireframers, product designers" },
-  { id: "automation_engineer", label: "Automation Engineers", icon: "🤖", desc: "QA engineers, workflow developers, robotic process automation" },
-  { id: "writer", label: "Writers / Copywriters", icon: "✍️", desc: "Technical writers, ghostwriters, copy and script editors" },
-  { id: "finance_accounting", label: "Finance & Accounting", icon: "🏦", desc: "Accountants, CPAs, auditors, financial planners, tax advisors" },
-  { id: "content_creator", label: "Content Creators", icon: "🤳", desc: "YouTubers, influencers, copywriters, content publishers" },
-  { id: "virtual_assistant", label: "Virtual Assistants", icon: "📞", desc: "Remote admin assistants, schedulers, online support stars" },
-  { id: "developer", label: "Developers", icon: "⚙️", desc: "Frontend, backend, mobile app, and full-stack engineers" },
-  { id: "project_manager", label: "Project Managers", icon: "📅", desc: "PMP, Scrum masters, functional managers, team coordinators" },
-  { id: "cybersecurity", label: "Cybersecurity Specialists", icon: "🛡️", desc: "Security analysts, ethical hackers, cloud defense guards" },
-  { id: "corp_member", label: "Corp Members (NYSC)", icon: "🟢", desc: "National Youth Service corps grads, active deployees" },
-  { id: "retiree", label: "Retirees", icon: "🏖️", desc: "Former workers, pensioners, retired adults" },
-  { id: "parent", label: "Parents / Guardians", icon: "👨‍👧", desc: "Parents, stay-at-home caregivers" },
-  { id: "executive", label: "Corporate Executives", icon: "📊", desc: "C-suite, directors, senior managers" },
-  { id: "government", label: "Government Workers", icon: "🏛️", desc: "Civil servants, public sector employees" },
-  { id: "healthcare", label: "Healthcare Workers", icon: "🏥", desc: "Doctors, nurses, pharmacists, lab techs" },
-  { id: "teacher", label: "Educators / Teachers", icon: "📚", desc: "School teachers, lecturers, trainers" },
-  { id: "artisan", label: "Artisans / Tradespeople", icon: "🔧", desc: "Tailors, mechanics, plumbers, carpenters" },
-  { id: "farmer", label: "Farmers / Agro workers", icon: "🌾", desc: "Agricultural workers and farmers" },
-  { id: "religious", label: "Religious Leaders", icon: "⛪", desc: "Pastors, imams, traditional leaders" },
-  { id: "ngo", label: "NGO / Community Leaders", icon: "🤝", desc: "Social workers, activists, community org leads" },
+  { id: "business_owner", label: "Business Owners", desc: "SME owners, entrepreneurs, startup founders" },
+  { id: "job_seeker", label: "Job Seekers", desc: "Actively searching for employment" },
+  { id: "student", label: "Students", desc: "University, college, or vocational students" },
+  { id: "employee", label: "Employees", desc: "Currently employed professionals" },
+  { id: "unemployed", label: "Unemployed", desc: "Not currently working or in school" },
+  { id: "freelancer", label: "Freelancers", desc: "Independent contractors and gig workers" },
+  { id: "digital_marketer", label: "Digital Marketers", desc: "SEO experts, media buyers, PPC specialists, social managers" },
+  { id: "sales_pro", label: "Sales Professionals", desc: "Account executives, outbound sales reps, SDRs, business developers" },
+  { id: "affiliate_marketer", label: "Affiliate Marketers", desc: "Niche bloggers, funnel builders, performance marketers" },
+  { id: "graphic_designer", label: "Graphic Designers", desc: "Brand designers, illustrative artists, visual creators" },
+  { id: "ui_ux_designer", label: "UI/UX Designers", desc: "User experience researchers, wireframers, product designers" },
+  { id: "automation_engineer", label: "Automation Engineers", desc: "QA engineers, workflow developers, robotic process automation" },
+  { id: "writer", label: "Writers / Copywriters", desc: "Technical writers, ghostwriters, copy and script editors" },
+  { id: "finance_accounting", label: "Finance & Accounting", desc: "Accountants, CPAs, auditors, financial planners, tax advisors" },
+  { id: "content_creator", label: "Content Creators", desc: "YouTubers, influencers, copywriters, content publishers" },
+  { id: "virtual_assistant", label: "Virtual Assistants", desc: "Remote admin assistants, schedulers, online support stars" },
+  { id: "developer", label: "Developers", desc: "Frontend, backend, mobile app, and full-stack engineers" },
+  { id: "project_manager", label: "Project Managers", desc: "PMP, Scrum masters, functional managers, team coordinators" },
+  { id: "cybersecurity", label: "Cybersecurity Specialists", desc: "Security analysts, ethical hackers, cloud defense guards" },
+  { id: "corp_member", label: "Corp Members (NYSC)", desc: "National Youth Service corps grads, active deployees" },
+  { id: "retiree", label: "Retirees", desc: "Former workers, pensioners, retired adults" },
+  { id: "parent", label: "Parents / Guardians", desc: "Parents, stay-at-home caregivers" },
+  { id: "executive", label: "Corporate Executives", desc: "C-suite, directors, senior managers" },
+  { id: "government", label: "Government Workers", desc: "Civil servants, public sector employees" },
+  { id: "healthcare", label: "Healthcare Workers", desc: "Doctors, nurses, pharmacists, lab techs" },
+  { id: "teacher", label: "Educators / Teachers", desc: "School teachers, lecturers, trainers" },
+  { id: "artisan", label: "Artisans / Tradespeople", desc: "Tailors, mechanics, plumbers, carpenters" },
+  { id: "farmer", label: "Farmers / Agro workers", desc: "Agricultural workers and farmers" },
+  { id: "religious", label: "Religious Leaders", desc: "Pastors, imams, traditional leaders" },
+  { id: "ngo", label: "NGO / Community Leaders", desc: "Social workers, activists, community org leads" },
 ];
 
 const BATCH_SIZES = [50, 100, 250, 500, 1000, 2000, 5000];
@@ -142,13 +237,14 @@ function exportCSV(leads) {
 interface ChipProps {
   selected: boolean;
   onClick: () => void;
-  icon: string;
+  id: string;
   label: string;
   desc: string;
   key?: string;
 }
 
-function Chip({ selected, onClick, icon, label, desc }: ChipProps) {
+function Chip({ selected, onClick, id, label, desc }: ChipProps) {
+  const IconComponent = AUDIENCE_ICONS[id] || Users;
   return (
     <div className="audience-chip" onClick={onClick} style={{
       border: selected ? "2px solid #00C896" : "1.5px solid #2A2F3E",
@@ -157,9 +253,15 @@ function Chip({ selected, onClick, icon, label, desc }: ChipProps) {
       transition: "all 0.15s", userSelect: "none"
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
-        <span style={{ fontSize: 18 }}>{icon}</span>
+        <span style={{ display: "inline-flex", color: selected ? "#00C896" : "#64748B" }}>
+          <IconComponent size={16} />
+        </span>
         <span style={{ fontWeight: 700, fontSize: 13, color: selected ? "#00C896" : "#E2E8F0" }}>{label}</span>
-        {selected && <span style={{ marginLeft: "auto", color: "#00C896", fontSize: 14 }}>✓</span>}
+        {selected && (
+          <span style={{ marginLeft: "auto", color: "#00C896", display: "inline-flex" }}>
+            <Check size={14} strokeWidth={3} />
+          </span>
+        )}
       </div>
       <div style={{ fontSize: 11, color: "#64748B", lineHeight: 1.4 }}>{desc}</div>
     </div>
@@ -588,13 +690,220 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
           color: #00C896 !important;
           box-shadow: 0 4px 10px -2px rgba(0, 200, 150, 0.1) !important;
         }
+
+        /* ── RESPONSIVE DESIGN UTILITIES ── */
+        .top-nav {
+          padding: 0 28px;
+        }
+        .top-nav-container {
+          max-width: 1400px;
+          margin: 0 auto;
+          height: 58px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .step-container {
+          padding: 32px 28px;
+        }
+        .hero-title {
+          margin: 0;
+          font-size: 36px;
+          font-weight: 900;
+          color: #fff;
+          letter-spacing: -0.04em;
+          line-height: 1.15;
+        }
+        .config-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 24px;
+        }
+        .demographics-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 14px;
+        }
+        .volume-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 8px;
+        }
+        .audience-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+        }
+        .stats-flex-row {
+          display: flex;
+          gap: 12px;
+        }
+        .results-stats-row {
+          display: flex;
+          gap: 12px;
+          margin-bottom: 24px;
+          flex-wrap: wrap;
+        }
+        .verification-stats-grid {
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 12px;
+          margin-top: 20px;
+        }
+        .controls-bar {
+          display: flex;
+          gap: 10px;
+          margin-bottom: 16px;
+          flex-wrap: wrap;
+          align-items: center;
+        }
+        .controls-bar-actions {
+          margin-left: auto;
+          display: flex;
+          gap: 8px;
+        }
+        .selection-action-bar {
+          background: linear-gradient(90deg, rgba(0,200,150,0.06), rgba(129,140,248,0.06));
+          border: 1px solid rgba(0,200,150,0.25);
+          border-radius: 12px;
+          padding: 12px 20px;
+          margin-bottom: 16px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .selection-action-buttons {
+          display: flex;
+          gap: 8px;
+        }
+
+        @media (max-width: 1024px) {
+          .config-grid {
+            grid-template-columns: 1fr !important;
+            gap: 20px !important;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .top-nav {
+            padding: 12px 16px !important;
+          }
+          .top-nav-container {
+            flex-direction: column !important;
+            height: auto !important;
+            gap: 14px !important;
+            align-items: center !important;
+            justify-content: center !important;
+            text-align: center !important;
+          }
+          .top-nav-steps {
+            width: 100% !important;
+            justify-content: center !important;
+            display: flex !important;
+            flex-wrap: wrap !important;
+            gap: 4px !important;
+          }
+          .top-nav-export-btn {
+            width: 100% !important;
+            text-align: center !important;
+          }
+          .step-container {
+            padding: 24px 16px !important;
+          }
+          .hero-title {
+            font-size: 26px !important;
+          }
+          .hero-title br {
+            display: none;
+          }
+          .demographics-grid {
+            grid-template-columns: 1fr !important;
+            gap: 10px !important;
+          }
+          .stats-flex-row {
+            flex-wrap: wrap !important;
+            gap: 8px !important;
+          }
+          .stats-flex-row > div {
+            flex: 1 1 calc(50% - 4px) !important;
+            min-width: calc(50% - 4px) !important;
+            padding: 10px 12px !important;
+          }
+          .results-stats-row > div {
+            flex: 1 1 calc(50% - 4px) !important;
+            min-width: calc(50% - 4px) !important;
+            padding: 10px 12px !important;
+          }
+          .verification-stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 8px !important;
+          }
+          .controls-bar {
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+          .controls-bar > input, 
+          .controls-bar > select, 
+          .controls-bar > .controls-bar-actions {
+            width: 100% !important;
+          }
+          .controls-bar-actions {
+            margin-left: 0 !important;
+            width: 100% !important;
+          }
+          .controls-bar-actions > button {
+            flex: 1 !important;
+            text-align: center !important;
+            padding: 10px !important;
+          }
+          .selection-action-bar {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 10px !important;
+            padding: 12px 16px !important;
+          }
+          .selection-action-buttons {
+            flex-direction: column !important;
+            width: 100% !important;
+          }
+          .selection-action-buttons > button {
+            width: 100% !important;
+            padding: 8px !important;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .volume-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+          .volume-grid > div {
+            padding: 8px 4px !important;
+          }
+          .audience-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .stats-flex-row > div {
+            flex: 1 1 100% !important;
+            min-width: 100% !important;
+          }
+          .results-stats-row > div {
+            flex: 1 1 100% !important;
+            min-width: 100% !important;
+          }
+          .verification-stats-grid {
+            grid-template-columns: 1fr !important;
+            gap: 8px !important;
+          }
+        }
       `}</style>
 
       {/* ── TOP NAV ── */}
-      <div style={{ background: "#0C1018", borderBottom: "1px solid #1E2533", padding: "0 28px", position: "sticky", top: 0, zIndex: 100 }}>
-        <div style={{ maxWidth: 1400, margin: "0 auto", height: 58, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div style={{ background: "#0C1018", borderBottom: "1px solid #1E2533", position: "sticky", top: 0, zIndex: 100 }} className="top-nav">
+        <div className="top-nav-container">
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 34, height: 34, borderRadius: 9, background: "linear-gradient(135deg, #00C896, #00A878)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🎯</div>
+            <div style={{ width: 34, height: 34, borderRadius: 9, background: "linear-gradient(135deg, #00C896, #00A878)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Target size={16} strokeWidth={3} className="text-[#000]" />
+            </div>
             <div>
               <span style={{ fontWeight: 900, fontSize: 17, color: "#fff", letterSpacing: "-0.03em" }}>MassLead</span>
               <span style={{ fontWeight: 900, fontSize: 17, color: "#00C896", letterSpacing: "-0.03em" }}>AI</span>
@@ -602,7 +911,7 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: 8 }} className="top-nav-steps">
             {["config", "generating", "results"].map((s, i) => (
               <div key={s} onClick={() => leads.length > 0 || s === "config" ? setStep(s) : null} style={{
                 padding: "6px 16px", borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: "pointer",
@@ -616,11 +925,13 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
           </div>
 
           {leads.length > 0 && (
-            <button onClick={() => exportCSV(leads)} style={{
+            <button onClick={() => exportCSV(leads)} className="top-nav-export-btn" style={{
               padding: "8px 18px", borderRadius: 10, border: "1px solid #00C896",
-              background: "rgba(0,200,150,0.08)", color: "#00C896", fontSize: 12, fontWeight: 700, cursor: "pointer"
+              background: "rgba(0,200,150,0.08)", color: "#00C896", fontSize: 12, fontWeight: 700, cursor: "pointer",
+              display: "flex", alignItems: "center", gap: 6
             }}>
-              ↓ Export {leads.length.toLocaleString()} CSV
+              <Download size={13} />
+              <span>Export {leads.length.toLocaleString()} CSV</span>
             </button>
           )}
         </div>
@@ -628,14 +939,14 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
 
       {/* ══════════════════════════════════════════════════════
            STEP 1: CONFIG
-      ══════════════════════════════════════════════════════ */}
+       ══════════════════════════════════════════════════════ */}
       {step === "config" && (
-        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 28px", animation: "fadeUp 0.3s ease" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto", animation: "fadeUp 0.3s ease" }} className="step-container">
 
           {/* Hero */}
           <div style={{ marginBottom: 36, textAlign: "center" }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "#00C896", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 10 }}>AI-Powered Mass Lead Generation</div>
-            <h1 style={{ margin: 0, fontSize: 36, fontWeight: 900, color: "#fff", letterSpacing: "-0.04em", lineHeight: 1.15 }}>
+            <h1 className="hero-title">
               Generate thousands of<br />
               <span style={{ color: "#00C896" }}>targeted leads</span> in minutes
             </h1>
@@ -644,14 +955,17 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
             </p>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+          <div className="config-grid">
 
             {/* LEFT COLUMN */}
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
               {/* Location */}
               <div style={{ background: "#111827", border: "1px solid #1E2533", borderRadius: 16, padding: 24 }}>
-                <div style={{ fontWeight: 800, fontSize: 15, color: "#fff", marginBottom: 4 }}>📍 Location Targeting</div>
+                <div style={{ fontWeight: 800, fontSize: 15, color: "#fff", marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
+                  <MapPin size={16} className="text-[#00C896]" />
+                  <span>Location Targeting</span>
+                </div>
                 <div style={{ fontSize: 12, color: "#64748B", marginBottom: 18 }}>Target a specific country, then narrow to a city or region.</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   <div>
@@ -672,9 +986,12 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
 
               {/* Volume */}
               <div style={{ background: "#111827", border: "1px solid #1E2533", borderRadius: 16, padding: 24 }}>
-                <div style={{ fontWeight: 800, fontSize: 15, color: "#fff", marginBottom: 4 }}>📊 Lead Volume</div>
+                <div style={{ fontWeight: 800, fontSize: 15, color: "#fff", marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
+                  <BarChart2 size={16} className="text-[#00C896]" />
+                  <span>Lead Volume</span>
+                </div>
                 <div style={{ fontSize: 12, color: "#64748B", marginBottom: 18 }}>How many leads do you want to generate?</div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+                <div className="volume-grid">
                   {BATCH_SIZES.map(n => (
                     <div
                       key={n}
@@ -693,15 +1010,19 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
                     </div>
                   ))}
                 </div>
-                <div style={{ marginTop: 14, padding: "10px 14px", background: "rgba(0,200,150,0.05)", borderRadius: 10, fontSize: 12, color: "#64748B" }}>
-                  ⏱ Estimated time: <strong style={{ color: "#00C896" }}>~{Math.ceil(totalTarget / 20) * 5}–{Math.ceil(totalTarget / 20) * 8} seconds</strong> · {Math.ceil(totalTarget / 20)} batches of 20
+                <div style={{ marginTop: 14, padding: "10px 14px", background: "rgba(0,200,150,0.05)", borderRadius: 10, fontSize: 12, color: "#64748B", display: "flex", alignItems: "center", gap: 6 }}>
+                  <Clock size={12} className="text-[#00C896]" />
+                  <span>Estimated time: <strong style={{ color: "#00C896" }}>~{Math.ceil(totalTarget / 20) * 5}–{Math.ceil(totalTarget / 20) * 8} seconds</strong> · {Math.ceil(totalTarget / 20)} batches of 20</span>
                 </div>
               </div>
 
               {/* Demographics */}
               <div style={{ background: "#111827", border: "1px solid #1E2533", borderRadius: 16, padding: 24 }}>
-                <div style={{ fontWeight: 800, fontSize: 15, color: "#fff", marginBottom: 16 }}>👤 Demographics</div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                <div style={{ fontWeight: 800, fontSize: 15, color: "#fff", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+                  <Users size={16} className="text-[#00C896]" />
+                  <span>Demographics</span>
+                </div>
+                <div className="demographics-grid">
                   <div>
                     <label style={labelStyle}>Gender</label>
                     <Select value={gender} onChange={setGender} options={GENDERS} />
@@ -728,7 +1049,10 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
               {/* Audience Types */}
               <div id="audience-types-card" style={{ background: "#111827", border: "1px solid #1E2533", borderRadius: 16, padding: 24 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                  <div style={{ fontWeight: 800, fontSize: 15, color: "#fff" }}>🎯 Audience Types *</div>
+                  <div style={{ fontWeight: 800, fontSize: 15, color: "#fff", display: "flex", alignItems: "center", gap: 8 }}>
+                    <Target size={16} className="text-[#00C896]" />
+                    <span>Audience Types *</span>
+                  </div>
                   {audiences.length > 0 && (
                     <span style={{ fontSize: 11, background: "rgba(0,200,150,0.12)", color: "#00C896", padding: "2px 8px", borderRadius: 12, fontWeight: 700, letterSpacing: "0.02em" }}>
                       {audiences.length} Selected
@@ -736,11 +1060,11 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
                   )}
                 </div>
                 <div style={{ fontSize: 12, color: "#64748B", marginBottom: 16 }}>Select one or more groups to target. Mix them for diverse lists.</div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <div className="audience-grid">
                   {AUDIENCE_TYPES.map(a => (
                     <Chip
                       key={a.id}
-                      icon={a.icon}
+                      id={a.id}
                       label={a.label}
                       desc={a.desc}
                       selected={audiences.includes(a.id)}
@@ -755,7 +1079,10 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
 
               {/* Interests & Goal */}
               <div style={{ background: "#111827", border: "1px solid #1E2533", borderRadius: 16, padding: 24 }}>
-                <div style={{ fontWeight: 800, fontSize: 15, color: "#fff", marginBottom: 16 }}>🧩 Interests & Campaign Goal</div>
+                <div style={{ fontWeight: 800, fontSize: 15, color: "#fff", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+                  <Compass size={16} className="text-[#00C896]" />
+                  <span>Interests & Campaign Goal</span>
+                </div>
                 <div style={{ marginBottom: 16 }}>
                   <label style={labelStyle}>Interests to Target</label>
                   <MultiChipSelect options={INTERESTS} selected={interests} onChange={setInterests} />
@@ -796,10 +1123,15 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
                     color: audiences.length > 0 ? "#000" : "#64748B",
                     fontSize: 15, fontWeight: 900, cursor: audiences.length > 0 ? "pointer" : "not-allowed",
                     letterSpacing: "-0.02em", boxShadow: audiences.length > 0 ? "0 6px 24px rgba(0,200,150,0.3)" : "none",
-                    transition: "all 0.2s"
+                    transition: "all 0.2s",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8
                   }}
                 >
-                  🚀 Generate {totalTarget.toLocaleString()} Leads
+                  <Zap size={18} fill={audiences.length > 0 ? "#000" : "transparent"} />
+                  <span>Generate {totalTarget.toLocaleString()} Leads</span>
                 </button>
               </div>
             </div>
@@ -811,9 +1143,11 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
            STEP 2: GENERATING
       ══════════════════════════════════════════════════════ */}
       {step === "generating" && (
-        <div style={{ maxWidth: 900, margin: "0 auto", padding: "48px 28px", animation: "fadeUp 0.3s ease" }}>
+        <div style={{ maxWidth: 900, margin: "0 auto", animation: "fadeUp 0.3s ease" }} className="step-container">
           <div style={{ textAlign: "center", marginBottom: 40 }}>
-            <div style={{ fontSize: 48, marginBottom: 16, animation: "blink 1.5s ease infinite" }}>⚡</div>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 16, animation: "blink 1.5s ease infinite" }}>
+              <Zap size={48} className="text-[#00C896]" fill="#00C896" />
+            </div>
             <h2 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: "#fff", letterSpacing: "-0.03em" }}>
               Generating {totalTarget.toLocaleString()} leads
             </h2>
@@ -840,7 +1174,7 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
             </div>
 
             {/* Stats */}
-            <div style={{ display: "flex", gap: 12, marginTop: 20 }}>
+            <div style={{ marginTop: 20 }} className="stats-flex-row">
               <StatBox label="Generated" value={leads.length.toLocaleString()} accent="#00C896" />
               <StatBox label="Hot Leads" value={hotCount.toLocaleString()} accent="#FF4757" />
               <StatBox label="Warm Leads" value={warmCount.toLocaleString()} accent="#FFA502" />
@@ -850,9 +1184,11 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
             {generating && (
               <button onClick={stopGeneration} style={{
                 marginTop: 20, padding: "10px 24px", borderRadius: 10, border: "1px solid #FF4757",
-                background: "rgba(255,71,87,0.1)", color: "#FF4757", fontSize: 13, fontWeight: 700, cursor: "pointer", width: "100%"
+                background: "rgba(255,71,87,0.1)", color: "#FF4757", fontSize: 13, fontWeight: 700, cursor: "pointer", width: "100%",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8
               }}>
-                ⏹ Stop Generation (keep {leads.length.toLocaleString()} leads so far)
+                <X size={14} strokeWidth={3} />
+                <span>Stop Generation (keep {leads.length.toLocaleString()} leads so far)</span>
               </button>
             )}
 
@@ -892,14 +1228,14 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
            STEP 3: RESULTS
       ══════════════════════════════════════════════════════ */}
       {step === "results" && (
-        <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px 28px", animation: "fadeUp 0.3s ease" }}>
+        <div style={{ maxWidth: 1400, margin: "0 auto", animation: "fadeUp 0.3s ease" }} className="step-container">
 
           {/* Stats row */}
-          <div style={{ display: "flex", gap: 12, marginBottom: 24, flexWrap: "wrap" }}>
+          <div className="results-stats-row">
             <StatBox label="Total Leads" value={leads.length.toLocaleString()} accent="#E2E8F0" />
-            <StatBox label="🔥 Hot" value={hotCount.toLocaleString()} accent="#FF4757" />
-            <StatBox label="🌡 Warm" value={warmCount.toLocaleString()} accent="#FFA502" />
-            <StatBox label="❄ Cold" value={(leads.length - hotCount - warmCount).toLocaleString()} accent="#54A0FF" />
+            <StatBox label="Hot" value={hotCount.toLocaleString()} accent="#FF4757" />
+            <StatBox label="Warm" value={warmCount.toLocaleString()} accent="#FFA502" />
+            <StatBox label="Cold" value={(leads.length - hotCount - warmCount).toLocaleString()} accent="#54A0FF" />
             <StatBox label="Avg Score" value={leads.length > 0 ? Math.round(leads.reduce((a, l) => a + (l.score || 0), 0) / leads.length) + "%" : "—"} accent="#00C896" />
             <StatBox label="Location" value={locationLabel} />
           </div>
@@ -916,11 +1252,11 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 18 }}>🛡️</span>
+                  <Shield size={18} className="text-[#00C896]" />
                   <div style={{ fontWeight: 800, fontSize: 16, color: "#fff" }}>Lead Email Quality & DNS Verification</div>
                 </div>
                 <div style={{ fontSize: 12, color: "#64748B", marginTop: 4, maxWidth: 800 }}>
-                  Evaluate outbound bounce risks in real-time. Our validation assistant runs live syntax pattern testing, evaluates disposable burner domain databases, and queries live global DNS MX servers to confirm mail delivery capability.
+                  Evaluate outbound bounce risks in real-time. Our verification engine specializes in checking if each target mailbox address actually exists on the recipient server, executing real-time SMTP routing probes, validating live global DNS MX records, and query verifications.
                 </div>
               </div>
               
@@ -932,10 +1268,12 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
                       padding: "10px 20px", borderRadius: 10, border: "2px solid #00C896",
                       background: "rgba(0, 200, 150, 0.15)", color: "#00C896",
                       fontSize: 13, fontWeight: 900, cursor: "pointer",
-                      boxShadow: "0 0 16px rgba(0,200,150,0.25)", transition: "all 0.15s ease"
+                      boxShadow: "0 0 16px rgba(0,200,150,0.25)", transition: "all 0.15s ease",
+                      display: "flex", alignItems: "center", gap: 6
                     }}
                   >
-                    🔍 Verify Selected ({selectedLeadIds.length})
+                    <ShieldCheck size={14} />
+                    <span>Verify Selected ({selectedLeadIds.length})</span>
                   </button>
                 )}
 
@@ -946,10 +1284,12 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
                       padding: "10px 20px", borderRadius: 10, border: "none",
                       background: "linear-gradient(135deg, #00C896, #00A878)", color: "#000",
                       fontSize: 13, fontWeight: 900, cursor: "pointer",
-                      boxShadow: "0 4px 14px rgba(0,200,150,0.2)"
+                      boxShadow: "0 4px 14px rgba(0,200,150,0.2)",
+                      display: "flex", alignItems: "center", gap: 6
                     }}
                   >
-                    🛡️ Verify All Emails
+                    <ShieldCheck size={14} />
+                    <span>Verify All Emails</span>
                   </button>
                 )}
 
@@ -960,10 +1300,12 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
                       style={{
                         padding: "8px 16px", borderRadius: 8, border: "1px solid #FF4757",
                         background: "rgba(255,71,87,0.08)", color: "#FF4757",
-                        fontSize: 12, fontWeight: 700, cursor: "pointer"
+                        fontSize: 12, fontWeight: 700, cursor: "pointer",
+                        display: "flex", alignItems: "center", gap: 6
                       }}
                     >
-                      ⏹ Stop Verification
+                      <X size={14} strokeWidth={3} />
+                      <span>Stop Verification</span>
                     </button>
                   </div>
                 )}
@@ -974,10 +1316,12 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
                     style={{
                       padding: "8px 16px", borderRadius: 8, border: "1px solid #00C896",
                       background: "transparent", color: "#00C896",
-                      fontSize: 12, fontWeight: 700, cursor: "pointer"
+                      fontSize: 12, fontWeight: 700, cursor: "pointer",
+                      display: "flex", alignItems: "center", gap: 6
                     }}
                   >
-                    🔄 Re-run DNS Checks ({unverifiedCount > 0 ? `${unverifiedCount} left` : "all done"})
+                    <RefreshCw size={12} />
+                    <span>Re-run DNS Checks ({unverifiedCount > 0 ? `${unverifiedCount} left` : "all done"})</span>
                   </button>
                 )}
               </div>
@@ -1007,31 +1351,46 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
 
             {/* Verification Stats breakdowns if any are verified */}
             {(verifiedCount > 0 || verifyingAll) && (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginTop: 20 }}>
+              <div className="verification-stats-grid">
                 
                 <div style={{ background: "rgba(0,200,150,0.06)", border: "1px solid rgba(0,200,150,0.15)", borderRadius: 12, padding: "12px 16px" }}>
                   <div style={{ fontSize: 20, fontWeight: 800, color: "#00C896" }}>{deliverableCount}</div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 2 }}>✔️ Deliverable</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 4, display: "flex", alignItems: "center", gap: 5 }}>
+                    <CheckCircle2 size={12} className="text-[#00C896]" />
+                    <span>Deliverable</span>
+                  </div>
                 </div>
 
                 <div style={{ background: "rgba(129,140,248,0.06)", border: "1px solid rgba(129,140,248,0.15)", borderRadius: 12, padding: "12px 16px" }}>
                   <div style={{ fontSize: 20, fontWeight: 800, color: "#818CF8" }}>{catchAllCount}</div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 2 }}>👥 Catch-All</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 4, display: "flex", alignItems: "center", gap: 5 }}>
+                    <MailOpen size={12} className="text-[#818CF8]" />
+                    <span>Catch-All</span>
+                  </div>
                 </div>
 
                 <div style={{ background: "rgba(255,165,2,0.06)", border: "1px solid rgba(255,165,2,0.15)", borderRadius: 12, padding: "12px 16px" }}>
                   <div style={{ fontSize: 20, fontWeight: 800, color: "#FFA502" }}>{riskyCount}</div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 2 }}>⚠️ Risky (Dispos.)</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 4, display: "flex", alignItems: "center", gap: 5 }}>
+                    <AlertTriangle size={12} className="text-[#FFA502]" />
+                    <span>Risky (Dispos.)</span>
+                  </div>
                 </div>
 
                 <div style={{ background: "rgba(255,71,87,0.06)", border: "1px solid rgba(255,71,87,0.15)", borderRadius: 12, padding: "12px 16px" }}>
                   <div style={{ fontSize: 20, fontWeight: 800, color: "#FF4757" }}>{undeliverableCount}</div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 2 }}>❌ Inactive</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 4, display: "flex", alignItems: "center", gap: 5 }}>
+                    <XCircle size={12} className="text-[#FF4757]" />
+                    <span>Doesn't Exist</span>
+                  </div>
                 </div>
 
                 <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 12, padding: "12px 16px" }}>
                   <div style={{ fontSize: 20, fontWeight: 800, color: "#94A3B8" }}>{unverifiedCount}</div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 2 }}>⏳ Unverified</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 4, display: "flex", alignItems: "center", gap: 5 }}>
+                    <Clock size={12} className="text-[#94A3B8]" />
+                    <span>Unverified</span>
+                  </div>
                 </div>
 
               </div>
@@ -1039,48 +1398,46 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
           </div>
 
           {/* Controls */}
-          <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+          <div className="controls-bar">
             <input
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(0); }}
               placeholder="Search name, email, location, occupation..."
-              style={{ ...inputStyle, width: 280 }}
+              style={{ ...inputStyle, maxWidth: 280, flex: 1, minWidth: 150 }}
             />
-            <Select value={filterAudience} onChange={v => { setFilterAudience(v); setPage(0); }} options={audienceOptions} style={{ width: 200 }} />
+            <Select value={filterAudience} onChange={v => { setFilterAudience(v); setPage(0); }} options={audienceOptions} style={{ maxWidth: 200, flex: 1, minWidth: 120 }} />
             <Select value={sortBy} onChange={setSortBy} options={["score", "name", "status"]}
-              style={{ width: 150 }} />
-            <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+              style={{ maxWidth: 150, flex: 1, minWidth: 100 }} />
+            <div className="controls-bar-actions">
               <button onClick={() => exportCSV(processedLeads)} style={{
                 padding: "9px 18px", borderRadius: 10, border: "1px solid #00C896",
-                background: "rgba(0,200,150,0.08)", color: "#00C896", fontSize: 12, fontWeight: 700, cursor: "pointer"
-              }}>↓ Export Filtered ({processedLeads.length.toLocaleString()})</button>
+                background: "rgba(0,200,150,0.08)", color: "#00C896", fontSize: 12, fontWeight: 700, cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 6
+              }}>
+                <Download size={13} />
+                <span>Export Filtered ({processedLeads.length.toLocaleString()})</span>
+              </button>
               <button onClick={() => { setStep("config"); setLeads([]); }} style={{
                 padding: "9px 18px", borderRadius: 10, border: "1px solid #2A2F3E",
-                background: "transparent", color: "#94A3B8", fontSize: 12, fontWeight: 700, cursor: "pointer"
-              }}>+ New Campaign</button>
+                background: "transparent", color: "#94A3B8", fontSize: 12, fontWeight: 700, cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 6
+              }}>
+                <Plus size={13} />
+                <span>New Campaign</span>
+              </button>
             </div>
           </div>
 
           {/* Dynamic Selection Alert Action Bar */}
           {selectedLeadIds.length > 0 && (
-            <div style={{
-              background: "linear-gradient(90deg, rgba(0,200,150,0.06), rgba(129,140,248,0.06))",
-              border: "1px solid rgba(0,200,150,0.25)",
-              borderRadius: 12,
-              padding: "12px 20px",
-              marginBottom: 16,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              animation: "fadeUp 0.22s ease-out"
-            }}>
+            <div className="selection-action-bar" style={{ animation: "fadeUp 0.22s ease-out" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ fontSize: 16 }}>📋</span>
+                <Files size={15} className="text-[#00C896]" />
                 <span style={{ fontSize: 13, fontWeight: 700, color: "#E2E8F0" }}>
                   Selected <strong style={{ color: "#00C896", padding: "0 2px" }}>{selectedLeadIds.length}</strong> {selectedLeadIds.length === 1 ? "lead" : "leads"}
                 </span>
               </div>
-              <div style={{ display: "flex", gap: 8 }}>
+              <div className="selection-action-buttons">
                 <button
                   onClick={runSelectedVerification}
                   disabled={verifyingAll}
@@ -1088,10 +1445,12 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
                     padding: "6px 14px", borderRadius: 8, border: "none",
                     background: "#00C896", color: "#000",
                     fontSize: 11, fontWeight: 800, cursor: "pointer",
-                    opacity: verifyingAll ? 0.6 : 1, transition: "all 0.15s ease"
+                    opacity: verifyingAll ? 0.6 : 1, transition: "all 0.15s ease",
+                    display: "flex", alignItems: "center", gap: 6
                   }}
                 >
-                  🛡️ Verify Mailboxes of Selected
+                  <ShieldCheck size={12} />
+                  <span>Verify Selected</span>
                 </button>
                 <button
                   onClick={() => {
@@ -1101,20 +1460,24 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
                   style={{
                     padding: "6px 14px", borderRadius: 8, border: "1px solid rgba(255, 71, 87, 0.4)",
                     background: "rgba(255, 71, 87, 0.08)", color: "#FF4757",
-                    fontSize: 11, fontWeight: 700, cursor: "pointer", transition: "all 0.15s ease"
+                    fontSize: 11, fontWeight: 700, cursor: "pointer", transition: "all 0.15s ease",
+                    display: "flex", alignItems: "center", gap: 6
                   }}
                 >
-                  🔥 Bulk Set 'Hot'
+                  <Flame size={12} fill="currentColor" />
+                  <span>Bulk Set 'Hot'</span>
                 </button>
                 <button
                   onClick={() => setSelectedLeadIds([])}
                   style={{
                     padding: "6px 14px", borderRadius: 8, border: "1px solid #2A2F3E",
                     background: "transparent", color: "#94A3B8",
-                    fontSize: 11, fontWeight: 700, cursor: "pointer", transition: "all 0.15s ease"
+                    fontSize: 11, fontWeight: 700, cursor: "pointer", transition: "all 0.15s ease",
+                    display: "flex", alignItems: "center", gap: 6
                   }}
                 >
-                  🧹 Clear Selection
+                  <X size={12} strokeWidth={3} />
+                  <span>Clear Selection</span>
                 </button>
               </div>
             </div>
@@ -1181,10 +1544,12 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
                             style={{
                               padding: "4px 10px", borderRadius: 6, border: "1.5px solid #2A2F3E",
                               background: "rgba(255,255,255,0.01)", color: "#8E9AA8", fontSize: 10, fontWeight: 700,
-                              cursor: "pointer", outline: "none"
+                              cursor: "pointer", outline: "none",
+                              display: "inline-flex", alignItems: "center", gap: 4
                             }}
                           >
-                            🔍 Verify
+                            <Shield size={10} />
+                            <span>Verify</span>
                           </button>
                         ) : lead.emailStatus === "Verifying" ? (
                           <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#FFA502", fontWeight: 600 }}>
@@ -1200,22 +1565,22 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
                             >
                               {lead.emailStatus === "Deliverable" && (
                                 <span style={{ background: "rgba(0,200,150,0.12)", color: "#00C896", padding: "3.5px 10px", borderRadius: 6, fontWeight: 700, fontSize: 10, display: "inline-flex", alignItems: "center", gap: 4 }}>
-                                  <span style={{ fontSize: 9 }}>✔️</span> Deliverable <span style={{ fontSize: 9, opacity: 0.65 }}>☄️</span>
+                                  <Check size={10} strokeWidth={3} /> <span>Exists / Deliverable</span>
                                 </span>
                               )}
                               {lead.emailStatus === "Catch-All" && (
                                 <span style={{ background: "rgba(129,140,248,0.12)", color: "#818CF8", padding: "3.5px 10px", borderRadius: 6, fontWeight: 700, fontSize: 10, display: "inline-flex", alignItems: "center", gap: 4 }}>
-                                  <span style={{ fontSize: 9 }}>👥</span> Catch-All <span style={{ fontSize: 9, opacity: 0.65 }}>☄️</span>
+                                  <Mail size={10} /> <span>Catch-All</span>
                                 </span>
                               )}
                               {lead.emailStatus === "Risky" && (
                                 <span style={{ background: "rgba(255,165,2,0.12)", color: "#FFA502", padding: "3.5px 10px", borderRadius: 6, fontWeight: 700, fontSize: 10, display: "inline-flex", alignItems: "center", gap: 4 }}>
-                                  <span style={{ fontSize: 9 }}>⚠️</span> Risky <span style={{ fontSize: 9, opacity: 0.65 }}>☄️</span>
+                                  <AlertTriangle size={10} /> <span>Risky</span>
                                 </span>
                               )}
                               {lead.emailStatus === "Undeliverable" && (
                                 <span style={{ background: "rgba(255,71,87,0.12)", color: "#FF4757", padding: "3.5px 10px", borderRadius: 6, fontWeight: 700, fontSize: 10, display: "inline-flex", alignItems: "center", gap: 4 }}>
-                                  <span style={{ fontSize: 9 }}>❌</span> Inactive <span style={{ fontSize: 9, opacity: 0.65 }}>☄️</span>
+                                  <X size={10} strokeWidth={3} /> <span>Doesn't Exist</span>
                                 </span>
                               )}
                               {lead.emailDetails && (
@@ -1245,7 +1610,7 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
                               }}>
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, borderBottom: "1px solid #1E2533", paddingBottom: 6 }}>
                                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                    <span style={{ fontSize: 12 }}>☄️</span>
+                                    <Shield size={12} className="text-[#00C896]" />
                                     <strong style={{ fontSize: 10, color: "#00C896", letterSpacing: "0.5px" }}>MAILMETEOR REPORT</strong>
                                   </div>
                                   <button
@@ -1266,7 +1631,11 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
                                   <div style={{ display: "flex", justifyContent: "space-between" }}>
                                     <span style={{ color: "#64748B" }}>Format:</span>
                                     <span>
-                                      {lead.mailmeteor?.format ?? true ? "✅ Valid Syntax" : "❌ Invalid structure"}
+                                      {lead.mailmeteor?.format ?? true ? (
+                                        <span style={{ color: "#00C896", fontWeight: 700 }}>Valid Syntax</span>
+                                      ) : (
+                                        <span style={{ color: "#FF4757", fontWeight: 700 }}>Invalid Structure</span>
+                                      )}
                                     </span>
                                   </div>
 
@@ -1274,7 +1643,11 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
                                   <div style={{ display: "flex", justifyContent: "space-between" }}>
                                     <span style={{ color: "#64748B" }}>MX Routing:</span>
                                     <span>
-                                      {lead.mailmeteor?.mx ?? true ? "✅ DNS Valid" : "❌ No MX active"}
+                                      {lead.mailmeteor?.mx ?? true ? (
+                                        <span style={{ color: "#00C896", fontWeight: 700 }}>DNS Valid</span>
+                                      ) : (
+                                        <span style={{ color: "#FF4757", fontWeight: 700 }}>No MX Active</span>
+                                      )}
                                     </span>
                                   </div>
 
@@ -1282,7 +1655,11 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
                                   <div style={{ display: "flex", justifyContent: "space-between" }}>
                                     <span style={{ color: "#64748B" }}>Disposable:</span>
                                     <span>
-                                      {lead.mailmeteor?.disposable ?? false ? "❌ Yes (Risky)" : "✅ No (Safe)"}
+                                      {lead.mailmeteor?.disposable ?? false ? (
+                                        <span style={{ color: "#FFA502", fontWeight: 700 }}>Yes (Risky)</span>
+                                      ) : (
+                                        <span style={{ color: "#00C896", fontWeight: 700 }}>No (Safe)</span>
+                                      )}
                                     </span>
                                   </div>
 
@@ -1290,7 +1667,11 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
                                   <div style={{ display: "flex", justifyContent: "space-between" }}>
                                     <span style={{ color: "#64748B" }}>Role-based:</span>
                                     <span>
-                                      {lead.mailmeteor?.role ?? false ? "🟡 Yes (Group list)" : "✅ No (Personal)"}
+                                      {lead.mailmeteor?.role ?? false ? (
+                                        <span style={{ color: "#FFA502", fontWeight: 700 }}>Yes (Group)</span>
+                                      ) : (
+                                        <span style={{ color: "#00C896", fontWeight: 700 }}>No (Personal)</span>
+                                      )}
                                     </span>
                                   </div>
 
@@ -1298,7 +1679,11 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
                                   <div style={{ display: "flex", justifyContent: "space-between" }}>
                                     <span style={{ color: "#64748B" }}>Catch-All:</span>
                                     <span>
-                                      {lead.mailmeteor?.catchAll ?? (lead.emailStatus === "Catch-All") ? "👥 Yes" : "✅ No"}
+                                      {lead.mailmeteor?.catchAll ?? (lead.emailStatus === "Catch-All") ? (
+                                        <span style={{ color: "#818CF8", fontWeight: 700 }}>Yes</span>
+                                      ) : (
+                                        <span style={{ color: "#00C896", fontWeight: 700 }}>No</span>
+                                      )}
                                     </span>
                                   </div>
                                 </div>
@@ -1328,7 +1713,26 @@ Schema: {"name":"","email":"","phone":"","gender":"","age":0,"location":"","coun
                       </td>
                       <td style={{ padding: "11px 14px", color: "#94A3B8", maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lead.occupation}</td>
                       <td style={{ padding: "11px 14px", color: "#64748B", whiteSpace: "nowrap" }}>
-                        {{"WhatsApp":"💬","Instagram":"📸","Facebook":"👥","LinkedIn":"🔗","Email":"📧","SMS":"📱","TikTok":"🎵"}[lead.platform] || "📧"} {lead.platform}
+                        {(() => {
+                          const iconSize = 13;
+                          switch (lead.platform) {
+                            case "WhatsApp":
+                              return <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><MessageSquare size={iconSize} className="text-[#00C896]" /> WhatsApp</span>;
+                            case "Instagram":
+                              return <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Instagram size={iconSize} className="text-[#FF4757]" /> Instagram</span>;
+                            case "Facebook":
+                              return <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Facebook size={iconSize} className="text-[#54A0FF]" /> Facebook</span>;
+                            case "LinkedIn":
+                              return <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Linkedin size={iconSize} className="text-[#818CF8]" /> LinkedIn</span>;
+                            case "SMS":
+                              return <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Smartphone size={iconSize} className="text-[#FFA502]" /> SMS</span>;
+                            case "TikTok":
+                              return <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Music size={iconSize} className="text-[#FF8B94]" /> TikTok</span>;
+                            case "Email":
+                            default:
+                              return <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Mail size={iconSize} className="text-[#94A3B8]" /> Email</span>;
+                          }
+                        })()}
                       </td>
                       <td style={{ padding: "11px 14px" }}>
                         <span style={{ background: statusBg[lead.status] || "#1E2533", color: statusColor[lead.status] || "#94A3B8", padding: "3px 10px", borderRadius: 20, fontWeight: 700, whiteSpace: "nowrap" }}>

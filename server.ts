@@ -135,6 +135,76 @@ function probeSMTPServer(exchange: string, email: string): Promise<{ status: "De
   });
 }
 
+// Live remote verification engine utilizing the free public Eva API to query actual mailbox existence
+async function queryEvaAPI(email: string): Promise<{ status: "Deliverable" | "Catch-All" | "Risky" | "Undeliverable"; catchAll: boolean; details: string; mailmeteor: any } | null> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000); // 4-second timeout limit
+    
+    const res = await fetch(`https://api.eva.pingutil.com/email?email=${encodeURIComponent(email)}`, {
+      signal: controller.signal,
+      headers: { 
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Accept": "application/json"
+      }
+    });
+    clearTimeout(timeoutId);
+
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.status === "success" && json.data) {
+        const d = json.data;
+        const deliverable = !!d.deliverable;
+        const catchAll = !!d.catch_all;
+        const disposable = !!d.disposable;
+        const validSyntax = !!d.valid_syntax;
+        const spamTrap = !!(d.spamtrap || d.spam_trap);
+
+        let status: "Deliverable" | "Catch-All" | "Risky" | "Undeliverable" = "Deliverable";
+        let details = "Mailbox existence confirmed via remote live routing checks.";
+
+        if (!validSyntax) {
+          status = "Undeliverable";
+          details = "Invalid syntax format structure detected.";
+        } else if (disposable) {
+          status = "Risky";
+          details = "Disposable or temporary burner email address detected.";
+        } else if (spamTrap) {
+          status = "Risky";
+          details = "High risk: flagged as potential spam trap or honey-pot address.";
+        } else if (deliverable) {
+          if (catchAll) {
+            status = "Catch-All";
+            details = "Domain catch-all configuration: accepts all recipient mailboxes.";
+          } else {
+            status = "Deliverable";
+            details = "Mailbox existence confirmed via direct live verifier API.";
+          }
+        } else {
+          status = "Undeliverable";
+          details = "Recipient rejected: mailbox does not exist (reported inactive).";
+        }
+
+        return {
+          status,
+          catchAll,
+          details,
+          mailmeteor: {
+            format: validSyntax,
+            disposable: disposable,
+            mx: true,
+            role: false,
+            catchAll: catchAll
+          }
+        };
+      }
+    }
+  } catch (err: any) {
+    console.warn("Eva verification query failed or timed out:", err?.message || err);
+  }
+  return null;
+}
+
 // AI-based high-fidelity validator backup for when outbound Port 25 is blocked
 async function evaluateEmailWithAI(
   email: string,
@@ -450,18 +520,21 @@ app.post("/api/verify-email", async (req, res) => {
     // 4. Active SMTP probe to verify if the mailbox actually exists and is reachable
     const smtpCheck = await probeSMTPServer(dnsCheck.exchange, trimmed);
 
-    // If SMTP Port 25 was blocked/restricted, evaluate using AI and high-fidelity deterministic heuristics
-    if (smtpCheck.isConnectionRestricted) {
-      let finalResult = null;
-      try {
-        finalResult = await evaluateEmailWithAI(trimmed, dnsCheck, isRole);
-      } catch (aiErr) {
-        console.warn("AI Email verifier threw error, falling back to local heuristic analyzer:", aiErr);
-      }
-
-      if (!finalResult) {
-        finalResult = evaluateEmailDeterministic(trimmed, dnsCheck, isRole);
-      }
+     // If SMTP Port 25 was blocked/restricted, evaluate using live remote API, AI, and deterministic heuristics
+     if (smtpCheck.isConnectionRestricted) {
+       let finalResult = await queryEvaAPI(trimmed);
+ 
+       if (!finalResult) {
+         try {
+           finalResult = await evaluateEmailWithAI(trimmed, dnsCheck, isRole);
+         } catch (aiErr) {
+           console.warn("AI Email verifier threw error, falling back to local heuristic analyzer:", aiErr);
+         }
+       }
+ 
+       if (!finalResult) {
+         finalResult = evaluateEmailDeterministic(trimmed, dnsCheck, isRole);
+       }
 
       return res.json({
         success: true,
